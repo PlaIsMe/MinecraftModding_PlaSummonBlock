@@ -2,6 +2,7 @@ package com.pla.plasummonblock.block.custom;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.logging.LogUtils;
+import com.pla.plasummonblock.config.PlaSummonBlockConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -13,6 +14,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -23,11 +26,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public class EventCoinSacrificialAltar extends Block {
@@ -81,25 +87,28 @@ public class EventCoinSacrificialAltar extends Block {
                         .withStyle(style -> style.withColor(0x00FF00)), true);
 
                 if (coinsUsed == 5) {
-                    pLevel.setBlock(pPos, pState.setValue(ENABLED, false), 3);
-                    int x = (int) pPlayer.getX();
-                    int y = (int) pPlayer.getY();
-                    int z = (int) pPlayer.getZ();
-                    String summonCommand = "summon minecraft:zombie " + x + " " + y + " " + z;
                     CommandSourceStack source = pPlayer.createCommandSourceStack();
+                    Integer tickReset = PlaSummonBlockConfig.TICK_RESET.get();
                     try {
+                        List<? extends String> bosses = PlaSummonBlockConfig.BOSSES.get();
+                        String randomMonster = bosses.get(pLevel.random.nextInt(bosses.size()));
+                        String summonCommand = "summon " + randomMonster + " "
+                                + pPos.getX() + " " + (pPos.getY() + 1) + " " + pPos.getZ()
+                                + " {Tags:[\"temporary_mob_" + pPos.getX() + "_" + pPos.getY() + "_" + pPos.getZ() + "\"]}";
+                        String particlesCommand = "particle minecraft:explosion_emitter" + " " + pPos.getX() + " " + (pPos.getY() + 1) + " " + pPos.getZ();
+
                         Objects.requireNonNull(pLevel.getServer()).getCommands().getDispatcher().execute(summonCommand, source);
                         pLevel.playSound(null, pPos, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.BLOCKS, 1.0f, 1.0f);
-                        pLevel.setBlock(pPos, pState.setValue(EVENT_COINS_USED, 0), 3);
-                        pLevel.setBlock(pPos, pState.setValue(ENABLED, false), 3);
-                        pLevel.scheduleTick(pPos, this, 60);
+                        Objects.requireNonNull(pLevel.getServer()).getCommands().getDispatcher().execute(particlesCommand, source);
+
+                        pLevel.setBlock(pPos, pState.setValue(ENABLED, false).setValue(EVENT_COINS_USED, 0), 3);
+                        pLevel.scheduleTick(pPos, this, tickReset);
                     } catch (CommandSyntaxException e) {
-                        LOGGER.error("Failed to execute command: {}", summonCommand, e);
-                        pLevel.setBlock(pPos, pState.setValue(EVENT_COINS_USED, 0), 3);
-                        pLevel.setBlock(pPos, pState.setValue(ENABLED, false), 3);
-                        pLevel.scheduleTick(pPos, this, 60);
+                        LOGGER.error("Failed to execute command !!!", e);
+                        pLevel.setBlock(pPos, pState.setValue(ENABLED, false).setValue(EVENT_COINS_USED, 0), 3);
+                        pLevel.scheduleTick(pPos, this, tickReset);
                     }
-                    pLevel.scheduleTick(pPos, this, 60);
+                    pLevel.scheduleTick(pPos, this, tickReset);
                 }
 
                 pLevel.playSound(null, pPos, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
@@ -121,7 +130,12 @@ public class EventCoinSacrificialAltar extends Block {
 
     @Override
     public void tick(BlockState pState, ServerLevel pLevel, BlockPos pPos, RandomSource pRandom) {
-        pLevel.setBlock(pPos, pState.setValue(ENABLED, true), 3);
+        pLevel.getServer().execute(() -> {
+            String uniqueTag = "temporary_mob_" + pPos.getX() + "_" + pPos.getY() + "_" + pPos.getZ();
+            pLevel.getEntities((Entity) null, new AABB(pPos).inflate(50), entity -> entity.getTags().contains(uniqueTag))
+                    .forEach(entity -> entity.discard());
+        });
+        pLevel.setBlock(pPos, pState.setValue(ENABLED, true).setValue(EVENT_COINS_USED, 0), 3);
         super.tick(pState, pLevel, pPos, pRandom);
     }
 }
