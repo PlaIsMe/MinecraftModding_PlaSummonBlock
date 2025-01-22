@@ -18,6 +18,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
@@ -26,6 +28,8 @@ import java.util.Objects;
 
 public class EventCoinSacrificialAltar extends Block {
     private static final Logger LOGGER = LogUtils.getLogger();
+
+    public static final BooleanProperty ENABLED = BooleanProperty.create("enabled");
 
     public EventCoinSacrificialAltar(Properties pProperties) {
         super(pProperties);
@@ -60,6 +64,7 @@ public class EventCoinSacrificialAltar extends Block {
                         .withStyle(style -> style.withColor(0x00FF00)), true);
 
                 if (coinsUsed == 5) {
+                    pLevel.setBlock(pPos, pState.setValue(ENABLED, false), 3);
                     int x = (int) pPlayer.getX();
                     int y = (int) pPlayer.getY();
                     int z = (int) pPlayer.getZ();
@@ -86,5 +91,10 @@ public class EventCoinSacrificialAltar extends Block {
         }
 
         return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> pBuilder) {
+        pBuilder.add(ENABLED);
     }
 }

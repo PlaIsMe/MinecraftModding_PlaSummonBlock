@@ -27,7 +27,7 @@ public class ModBlock {
             () -> new EventCoinSacrificialAltar(BlockBehaviour.Properties
                     .copy(Blocks.BEDROCK)
                     .sound(SoundType.AMETHYST)
-                    .lightLevel(state -> 15)) {
+                    .lightLevel(state -> state.getValue(EventCoinSacrificialAltar.ENABLED) ? 15 : 0)) {
 
     });
 

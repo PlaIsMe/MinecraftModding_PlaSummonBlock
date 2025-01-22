@@ -1,7 +1,6 @@
 {
   "variants": {
-    "": {
-      "model": "plasummonblock:block/event_coin_sacrificial_altar"
-    }
+    "enabled=false": { "model": "plasummonblock:block/event_coin_sacrificial_altar_disabled" },
+    "enabled=true": { "model": "plasummonblock:block/event_coin_sacrificial_altar_enabled" }
   }
 }

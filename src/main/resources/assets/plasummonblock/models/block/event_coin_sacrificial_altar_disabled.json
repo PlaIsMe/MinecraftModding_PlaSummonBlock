@@ -2,7 +2,7 @@
   "parent": "minecraft:block/cube_all",
   "textures": {
     "1": "plasummonblock:block/event_coin_sacrificial_altar_top",
-    "2": "plasummonblock:block/event_coin_sacrificial_altar_side",
+    "2": "plasummonblock:block/event_coin_sacrificial_altar_side_disabled",
     "particle": "plasummonblock:block/event_coin_sacrificial_altar_side_particle"
   },
 
