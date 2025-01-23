@@ -75,7 +75,6 @@ public class EventCoinSacrificialAltarBossBlock extends Block {
                 );
                 return InteractionResult.SUCCESS;
             }
-
             if (itemInHand.is(eventCoinItem)) {
                 itemInHand.shrink(1);
 
@@ -123,7 +122,7 @@ public class EventCoinSacrificialAltarBossBlock extends Block {
             } else {
                 pPlayer.displayClientMessage(Component.literal("Please use an event coin to interact with this altar.")
                         .withStyle(style -> style.withColor(0xFF0000)), true);
-                return InteractionResult.CONSUME;
+                return InteractionResult.SUCCESS;
             }
         }
 

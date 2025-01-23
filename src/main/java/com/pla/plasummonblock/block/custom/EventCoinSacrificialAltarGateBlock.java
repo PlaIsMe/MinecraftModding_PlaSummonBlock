@@ -122,7 +122,7 @@ public class EventCoinSacrificialAltarGateBlock extends Block {
             } else {
                 pPlayer.displayClientMessage(Component.literal("Please use an event coin to interact with this altar.")
                         .withStyle(style -> style.withColor(0xFF0000)), true);
-                return InteractionResult.CONSUME;
+                return InteractionResult.SUCCESS;
             }
         }
 

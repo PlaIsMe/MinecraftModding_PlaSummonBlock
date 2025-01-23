@@ -14,7 +14,7 @@ public class PlaSummonBlockConfig {
 
     static {
         TICK_RESET = BUILDER.comment("Tick resetting the summon block")
-                .defineInRange("tickReset", 72000, 60, 72000);
+                .defineInRange("tickReset", 100, 60, 72000);
 
         BOSSES = BUILDER.comment("A list of monsters to be spawned")
                 .defineList("bosses", List.of("minecraft:zombie", "minecraft:skeleton", "minecraft:creeper"),
