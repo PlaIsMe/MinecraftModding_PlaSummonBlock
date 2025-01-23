@@ -10,13 +10,18 @@ public class PlaSummonBlockConfig {
 
     public static ForgeConfigSpec.ConfigValue<Integer> TICK_RESET;
     public static ForgeConfigSpec.ConfigValue<List<? extends String>> BOSSES;
+    public static ForgeConfigSpec.ConfigValue<List<? extends String>> GATES;
 
     static {
         TICK_RESET = BUILDER.comment("Tick resetting the summon block")
-                .defineInRange("tickReset", 60, 1, 72000);
+                .defineInRange("tickReset", 72000, 60, 72000);
 
         BOSSES = BUILDER.comment("A list of monsters to be spawned")
-                .defineList("bosses", List.of("minecraft:zombie", "minecraft:skeleton", "minecraft:creeper", "minecraft:pillager", "minecraft:enderman"),
+                .defineList("bosses", List.of("minecraft:zombie", "minecraft:skeleton", "minecraft:creeper"),
+                        obj -> obj instanceof String);
+
+        GATES = BUILDER.comment("A list of gates to be spawned")
+                .defineList("gates", List.of("minecraft:pillager", "minecraft:enderman"),
                         obj -> obj instanceof String);
 
         SPEC = BUILDER.build();

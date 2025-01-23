@@ -15,11 +15,9 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,22 +27,24 @@ import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 
-public class EventCoinSacrificialAltar extends Block {
+public class EventCoinSacrificialAltarGateBlock extends Block {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final BooleanProperty ENABLED = BooleanProperty.create("enabled");
-    public static final IntegerProperty EVENT_COINS_USED = IntegerProperty.create("event_coin_used", 0, 5);
+    public static final IntegerProperty EVENT_COINS_USED = IntegerProperty.create("event_coin_used", 0, 15);
+    public static final IntegerProperty EVENT_COINS_LIMIT = IntegerProperty.create("event_coin_limit", 5, 15);
 
-    public EventCoinSacrificialAltar(Properties pProperties) {
+    public EventCoinSacrificialAltarGateBlock(Properties pProperties) {
         super(pProperties);
-        registerDefaultState(defaultBlockState().setValue(EVENT_COINS_USED, 0));
+        registerDefaultState(defaultBlockState()
+                .setValue(EVENT_COINS_USED, 0)
+                .setValue(EVENT_COINS_LIMIT, 5));
     }
 
     @Override
@@ -80,38 +80,44 @@ public class EventCoinSacrificialAltar extends Block {
                 itemInHand.shrink(1);
 
                 int coinsUsed = pState.getValue(EVENT_COINS_USED);
+                int coinsLimit = pState.getValue(EVENT_COINS_LIMIT);
+
                 coinsUsed++;
                 pLevel.setBlock(pPos, pState.setValue(EVENT_COINS_USED, coinsUsed), 3);
+                pLevel.playSound(null, pPos, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
 
-                pPlayer.displayClientMessage(Component.literal("Coins used: " + coinsUsed + "/5")
+                pPlayer.displayClientMessage(Component.literal("Coins used: " + coinsUsed + "/" + coinsLimit)
                         .withStyle(style -> style.withColor(0x00FF00)), true);
 
-                if (coinsUsed == 5) {
-                    CommandSourceStack source = pPlayer.createCommandSourceStack();
-                    Integer tickReset = PlaSummonBlockConfig.TICK_RESET.get();
-                    try {
-                        List<? extends String> bosses = PlaSummonBlockConfig.BOSSES.get();
-                        String randomMonster = bosses.get(pLevel.random.nextInt(bosses.size()));
-                        String summonCommand = "summon " + randomMonster + " "
-                                + pPos.getX() + " " + (pPos.getY() + 1) + " " + pPos.getZ()
-                                + " {Tags:[\"temporary_mob_" + pPos.getX() + "_" + pPos.getY() + "_" + pPos.getZ() + "\"]}";
-                        String particlesCommand = "particle minecraft:explosion_emitter" + " " + pPos.getX() + " " + (pPos.getY() + 1) + " " + pPos.getZ();
+                if (coinsUsed == coinsLimit) {
+                    pLevel.setBlock(pPos, pState.setValue(ENABLED, false)
+                            .setValue(EVENT_COINS_USED, 0), 3);
 
+                    CommandSourceStack source = pPlayer.createCommandSourceStack();
+                    try {
+                        int spawnX = pPos.getX();
+                        int spawnY = pPos.getY();
+                        int spawnZ = pPos.getZ();
+
+                        List<? extends String> gates = PlaSummonBlockConfig.GATES.get();
+                        String randomGate = gates.get(pLevel.random.nextInt(gates.size()));
+
+                        String summonCommand = "summon " + randomGate + " "
+                                + spawnX + " " + (spawnY + 1) + " " + spawnZ;
                         Objects.requireNonNull(pLevel.getServer()).getCommands().getDispatcher().execute(summonCommand, source);
-                        pLevel.playSound(null, pPos, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.BLOCKS, 1.0f, 1.0f);
+
+                        String particlesCommand = "particle minecraft:explosion_emitter" + " "
+                                + spawnX + " " + spawnY + " " + spawnZ;
                         Objects.requireNonNull(pLevel.getServer()).getCommands().getDispatcher().execute(particlesCommand, source);
 
-                        pLevel.setBlock(pPos, pState.setValue(ENABLED, false).setValue(EVENT_COINS_USED, 0), 3);
-                        pLevel.scheduleTick(pPos, this, tickReset);
+                        pLevel.playSound(null, pPos, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.BLOCKS, 1.0f, 1.0f);
+
                     } catch (CommandSyntaxException e) {
                         LOGGER.error("Failed to execute command !!!", e);
-                        pLevel.setBlock(pPos, pState.setValue(ENABLED, false).setValue(EVENT_COINS_USED, 0), 3);
-                        pLevel.scheduleTick(pPos, this, tickReset);
                     }
+                    Integer tickReset = PlaSummonBlockConfig.TICK_RESET.get();
                     pLevel.scheduleTick(pPos, this, tickReset);
                 }
-
-                pLevel.playSound(null, pPos, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
                 return InteractionResult.SUCCESS;
             } else {
                 pPlayer.displayClientMessage(Component.literal("Please use an event coin to interact with this altar.")
@@ -125,17 +131,18 @@ public class EventCoinSacrificialAltar extends Block {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> pBuilder) {
-        pBuilder.add(ENABLED, EVENT_COINS_USED);
+        pBuilder.add(ENABLED, EVENT_COINS_USED, EVENT_COINS_LIMIT);
     }
 
     @Override
     public void tick(BlockState pState, ServerLevel pLevel, BlockPos pPos, RandomSource pRandom) {
-        pLevel.getServer().execute(() -> {
-            String uniqueTag = "temporary_mob_" + pPos.getX() + "_" + pPos.getY() + "_" + pPos.getZ();
-            pLevel.getEntities((Entity) null, new AABB(pPos).inflate(50), entity -> entity.getTags().contains(uniqueTag))
-                    .forEach(entity -> entity.discard());
-        });
-        pLevel.setBlock(pPos, pState.setValue(ENABLED, true).setValue(EVENT_COINS_USED, 0), 3);
+        Random random = new Random();
+        int randomCoinLimit = random.nextInt(11) + 5;
+
+        pLevel.setBlock(pPos, pState
+                .setValue(ENABLED, true)
+                .setValue(EVENT_COINS_USED, 0)
+                .setValue(EVENT_COINS_LIMIT, randomCoinLimit),3);
         super.tick(pState, pLevel, pPos, pRandom);
     }
 }

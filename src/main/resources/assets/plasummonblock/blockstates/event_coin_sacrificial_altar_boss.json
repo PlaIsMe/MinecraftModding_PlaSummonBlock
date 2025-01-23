@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "enabled=false": { "model": "plasummonblock:block/event_coin_sacrificial_altar_boss_disabled" },
+    "enabled=true": { "model": "plasummonblock:block/event_coin_sacrificial_altar_boss_enabled" }
+  }
+}
